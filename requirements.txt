@@ -1,0 +1,9 @@
+termcolor
+requests
+pyOpenSSL
+ndg-httpsclient
+pyasn1
+feedparser
+bs4
+stanfordcorenlp
+pony
