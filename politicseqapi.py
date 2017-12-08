@@ -1,12 +1,20 @@
-import requests, json, feedparser, pprint
+import requests, json, feedparser, pprint, os
 from bs4 import BeautifulSoup
 from stanfordcorenlp import StanfordCoreNLP
 import messager as m
 
 BASE_URL = 'https://api.politicseq.com'
-NLP_URL = 'http://104.131.130.164'
+#NLP_URL = 'http://104.131.130.164' 
+NLP_URL = str(os.getenv('NLP_URL'))
 NLP_PORT = 9000
 nlp = StanfordCoreNLP(NLP_URL, port=NLP_PORT)
+sentiment_map = {
+  'Verynegative': -1.0,
+  'Negative': -0.5,
+  'Positive': 0.5,
+  'Verypositive': 1.0,
+  'Neutral': 0
+}
 
 class PoliticsEQApi():
   def __init__(self):
@@ -20,7 +28,7 @@ class PoliticsEQApi():
     feed = feedparser.parse(source['url'])
     return feed.entries
   
-  def fetch_article(self, article_url):
+  def fetch_article_entities(self, article_url):
     r = requests.get(article_url, verify=requests.certs.where())
     soup = BeautifulSoup(r.text, 'html.parser')
     ps = soup.find_all('article')
@@ -30,11 +38,11 @@ class PoliticsEQApi():
       n = nlp._request('sentiment,ner', body.encode('utf-8'))
       entities = self.extract_entities(n)
       #entities = [(token['word'], token['ner']) for token in s['tokens'] if len(token['ner']) > 1]
-      pprint.pprint(entities)
+      return entities
     
   def extract_entities(self, text):
+    entities = {}
     for s in text['sentences']:
-      entities = {}
       skip_next = False
       tokens = s['tokens']
       sent = []
@@ -64,8 +72,8 @@ class PoliticsEQApi():
         entities[combined_token] = {
           'name': combined_token,
           'type': tokens[pos]['ner'],
-          'sentiment': s['sentiment']
+          'sentiment': sentiment_map[s['sentiment']]
         }
-    
+    # return the complete entity hash
     return entities
        

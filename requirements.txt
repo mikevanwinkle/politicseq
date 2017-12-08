@@ -7,3 +7,4 @@ feedparser
 bs4
 stanfordcorenlp
 pony
+pymysql

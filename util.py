@@ -28,16 +28,26 @@ class Util():
     
   def check(self):
     sources = pol.sources()
+    entities = {}
     for sname, sdata in sources.items(): 
       m.info("checking source: {0}".format(sdata['name']))
       items = pol.fetch_articles_from_src(sdata)
       for item in items:
         m.success(" - {}: {}".format(item['title'].encode('UTF-8'), item['link']))
-        print pol.fetch_article(item['link'])
-        exit()
+        entities = pol.fetch_article_entities(item['link'])
+        for name,entity in entities.items():
+          pprint(entity)
   
   def createdb(self):
-    import createdb
+    import db
+
+  def create_sources(self): 
+    import db
+    from models.source import source as source
+    db = db.Db()
+    for (id, name, url, type) in db.query("SELECT * from source;"):
+      pprint(name)
+
     
     
   
