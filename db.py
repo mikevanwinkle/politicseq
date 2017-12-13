@@ -9,6 +9,7 @@ class Db:
 			self.db = os.environ['DB_NAME']
 			self.user = os.environ['DB_USER']
 			self.password = os.environ['DB_PASS']
+			self.mysql = mysql
 			self.connection = mysql.connector.connect(host=self.host, database=self.db, user=self.user, password=self.password)
 			self.cursor = self.connection.cursor()
 
@@ -23,3 +24,8 @@ class Db:
 	def query(self, query):
 		self.cursor.execute(query)
 		return self.cursor
+
+	def add_column(self, table_name, column):
+		query = "ALTER TABLE `{}` ADD COLUMN ( {} );"
+		self.query(query.format(table_name, column))
+		self.connection.connection.commit()

@@ -44,13 +44,25 @@ class Util():
   def create_sources(self): 
     import db
     from models.source import source as source
+    source = source()
     db = db.Db()
-    for (id, name, url, type) in db.query("SELECT * from source;"):
-      pprint(name)
+    r = requests.get('https://politicseq.com/api/feeds?feeds', verify=requests.certs.where())
+    sources = r.json()
+    for feed in sources:
+      source.insert(feed)
+    results = db.query("SELECT * FROM source")
+    pprint(results)
 
-    
-    
-  
+  def list_sources(self):
+    from models.source import source as source
+    source = source()
+    pprint(source.get())
+
+  def add_column(self):
+    import db
+    db = db.Db()
+    db.add_column('source', '`publisher_url` varchar(255) NULL')
+
 if __name__ == '__main__':
   util = Util()
   util.main()
