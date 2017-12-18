@@ -28,4 +28,6 @@ class Db:
 	def add_column(self, table_name, column):
 		query = "ALTER TABLE `{}` ADD COLUMN ( {} );"
 		self.query(query.format(table_name, column))
+
+	def save(self):
 		self.connection.connection.commit()

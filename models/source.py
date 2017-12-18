@@ -1,4 +1,4 @@
-import db
+import db, messager
 
 class source(): 
 	def __init__(self):
@@ -9,10 +9,9 @@ class source():
 			query = "INSERT INTO source (`name`, `url`, `type`,`publisher`,`publisher_url`) VALUES(%s,%s,%s,%s,%s)"
 			cursor = self.db.cursor
 			cursor.execute(query, (source['name'],source['feed_url'], source['format'], source['publisher'], source['publisher_url']))
-			self.db.connection.connection.commit()
 		except self.db.mysql.connector.Error as err:
-			print(cursor.statement)
-			print("Something went wrong: {}".format(err))
+			messager.info(cursor.statement)
+			messager.error("Something went wrong: {}".format(err))
 
 	def get(self, name=None, url=None, type=None, fields='*', order='ASC', order_by='name'):
 		query = "SELECT {} FROM source WHERE 1 = 1".format(fields)
@@ -26,4 +25,14 @@ class source():
 		query = "{} ORDER BY {} {}".format(query, order_by, order)
 		print query
 		result = self.db.query(query)
-		return result.fetchall()
+		data = []
+		for row in result.fetchall():
+			data.append({
+				'id': row[0],
+				'name': row[1],
+				'url': row[2],
+				'type': row[3],
+				'publisher': row[4],
+				'publisher_url': row[5]
+			})
+		return data

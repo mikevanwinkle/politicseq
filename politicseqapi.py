@@ -2,6 +2,7 @@ import requests, json, feedparser, pprint, os
 from bs4 import BeautifulSoup
 from stanfordcorenlp import StanfordCoreNLP
 import messager as m
+import xml
 
 BASE_URL = 'https://api.politicseq.com'
 #NLP_URL = 'http://104.131.130.164' 
@@ -16,14 +17,78 @@ sentiment_map = {
   'Neutral': 0
 }
 
+feed_classes = {
+  "Breitbart": "the-article"
+}
+
 class PoliticsEQApi():
   def __init__(self):
     pass
   
   def sources(self, match=None):
-    r = requests.get('{0}/sources'.format(BASE_URL), verify=requests.certs.where())  
-    return r.json()['results']
-  
+    from models.source import source as source
+    sources = source()
+    return sources.get()
+
+  def clean_text(self, text):
+    import codecs, string
+    chars = {
+      '\u201c': '"',
+      '\u201d': '"',
+      '\\xa0': ' ',
+      '\\u2019': "'",
+      '\\u2013': "-"
+    }
+
+    for char, repl in chars.items():
+      text = text.replace(char, repl)
+    printable = set(string.printable)
+    text = filter(lambda x: x in printable, text)
+    return text
+
+
+  def ingest_from_feed_item(self, feed_item, source=None):
+    from models.author import author
+    from models.article import article
+    from dateutil import parser
+    import codecs
+    author = author()
+    articles = article()
+    item_auths = []
+    for auth in set(feed_item['authors']):
+      if not author.exists(auth['name']):
+        author.create({'name': auth['name']})
+      item_auths.append(author.find(auth['name']))
+    item_info = {}
+    r = requests.get(feed_item['link'], verify=requests.certs.where())
+    summary = BeautifulSoup(self.clean_text(feed_item['summary']), 'html.parser')
+    soup = BeautifulSoup(r.text, 'html.parser')
+    text = soup.findAll('article', {'class': feed_classes[source['name']]})
+    text = BeautifulSoup(str(text), 'html.parser')
+    body = []
+    for p in text.findAll('p'):
+      body.append(self.clean_text(p.get_text()))
+    body = "".join(body)
+    feed_item['title'] = self.clean_text(feed_item['title'])
+    article = articles.find_by_title(feed_item['title'])
+    if not article:
+      # saving article
+      a = {}
+      m.info("Saving {}".format(feed_item['title']))
+      articles.new({
+          'title': feed_item['title'],
+          'summary': summary.get_text(),
+          'source': source['id'],
+          'author_id': item_auths[0]['id'],
+          'content': body,
+          'date': parser.parse(feed_item['published']).strftime('%Y-%m-%d %H:%M:%S'), #Fri, 15 Dec 2017 21:21:18 +0000,
+          'link': feed_item['link']
+      })
+      article_id = articles.save()
+      m.success("Created {}".format(article_id))
+    else:
+      m.info("Skipping {}".format(article['title']))
+
   def fetch_articles_from_src(self, source):
     feed = feedparser.parse(source['url'])
     return feed.entries
