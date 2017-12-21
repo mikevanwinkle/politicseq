@@ -1,0 +1,39 @@
+version: '2'
+services:
+  monitor:
+    build:
+      context: ./queue
+      dockerfile: Dockerfile
+    ports:
+     - "5555:5555"
+    entrypoint: flower
+    command:  -A tasks --port=5555 --broker=redis://:mikeisawesome@redis:6379/0
+    depends_on:
+      - redis
+    volumes:
+      - "/etc/hostname:/etc/hostname"
+  # worker:
+  #   environment:
+  #     DB_NAME: 'bp2'
+  #     DB_USER: 'bp2'
+  #     DB_PASS: 'y0Wuvk!NRpW2'
+  #     DB_HOST: 'localhost'
+  #     NLP_URL: 'http://0.0.0.0'
+  #   build:
+  #     context: ./bp
+  #     dockerfile: Dockerfile
+  #   entrypoint: celery
+  #   command:  -A tasks worker --loglevel=info --broker=redis://:mikeisawesome@redis:6379/0
+  #   depends_on:
+  #     - redis
+  #   volumes:
+  #     - ./bp:/opt/bp
+  redis:
+    image: redis
+    command: redis-server --requirepass mikeisawesome --timeout 0
+    ports:
+     - "6379:6379"
+    volumes:
+     - 'redis:/var/lib/redis/data'
+volumes:
+  redis:

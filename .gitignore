@@ -1,2 +1,3 @@
 *.pyc
-lib
+bp/lib
+bp/local
