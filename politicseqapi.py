@@ -5,7 +5,7 @@ import messager as m
 import xml
 
 BASE_URL = 'https://api.politicseq.com'
-#NLP_URL = 'http://104.131.130.164' 
+#NLP_URL = 'http://104.131.130.164'
 NLP_URL = str(os.getenv('NLP_URL'))
 NLP_PORT = 9000
 nlp = StanfordCoreNLP(NLP_URL, port=NLP_PORT)
@@ -18,13 +18,14 @@ sentiment_map = {
 }
 
 feed_classes = {
-  "Breitbart": "the-article"
+  "Breitbart": "the-article",
+  "FiveThirtyEight": "single-post-content"
 }
 
 class PoliticsEQApi():
   def __init__(self):
     pass
-  
+
   def sources(self, match=None):
     from models.source import source as source
     sources = source()
@@ -47,7 +48,7 @@ class PoliticsEQApi():
     return text
 
 
-  def ingest_from_feed_item(self, feed_item, source=None):
+  def ingest_from_feed_item(self, feed_item, source=None, update=True):
     from models.author import author
     from models.article import article
     from dateutil import parser
@@ -60,7 +61,8 @@ class PoliticsEQApi():
         author.create({'name': auth['name']})
       item_auths.append(author.find(auth['name']))
     item_info = {}
-    r = requests.get(feed_item['link'], verify=requests.certs.where())
+    # fetch the article
+    r = requests.get(feed_item['link'], verify=requests.certs.where(), headers={'User-agent': 'PoliticsEQ Sentiment Bot'})
     summary = BeautifulSoup(self.clean_text(feed_item['summary']), 'html.parser')
     soup = BeautifulSoup(r.text, 'html.parser')
     text = soup.findAll('article', {'class': feed_classes[source['name']]})
@@ -71,11 +73,11 @@ class PoliticsEQApi():
     body = "".join(body)
     feed_item['title'] = self.clean_text(feed_item['title'])
     article = articles.find_by_title(feed_item['title'])
-    if not article:
+    if not article.getDict():
       # saving article
       a = {}
       m.info("Saving {}".format(feed_item['title']))
-      articles.new({
+      article = articles.new({
           'title': feed_item['title'],
           'summary': summary.get_text(),
           'source': source['id'],
@@ -84,27 +86,24 @@ class PoliticsEQApi():
           'date': parser.parse(feed_item['published']).strftime('%Y-%m-%d %H:%M:%S'), #Fri, 15 Dec 2017 21:21:18 +0000,
           'link': feed_item['link']
       })
-      article_id = articles.save()
-      m.success("Created {}".format(article_id))
+      article = article.save()
+      m.success("Created {}".format(article.last_id()))
     else:
-      m.info("Skipping {}".format(article['title']))
+      if not update: m.info("Skipping {}".format(article['title']))
+      article.update('content', body)
+      article.save()
+      m.success("> Updated {}".format(article.last_id()))
 
   def fetch_articles_from_src(self, source):
     feed = feedparser.parse(source['url'])
     return feed.entries
-  
-  def fetch_article_entities(self, article_url):
-    r = requests.get(article_url, verify=requests.certs.where())
-    soup = BeautifulSoup(r.text, 'html.parser')
-    ps = soup.find_all('article')
-    for p in ps:
-      body = p.get_text()
-      #n = requests.post('{0}:{1}'.format(NLP_URL, NLP_PORT), params={'properties': str('sentiment')}, data=sent.encode('utf-8'))
-      n = nlp._request('sentiment,ner', body.encode('utf-8'))
+
+  def fetch_article_entities(self, text):
+      n = nlp._request('sentiment,ner', text)
       entities = self.extract_entities(n)
       #entities = [(token['word'], token['ner']) for token in s['tokens'] if len(token['ner']) > 1]
       return entities
-    
+
   def extract_entities(self, text):
     entities = {}
     for s in text['sentences']:
@@ -114,7 +113,7 @@ class PoliticsEQApi():
       for pos in range(0, len(tokens) - 1):
         sent.append(tokens[pos]['word'])
         # skip when token is not an entity
-        if len(tokens[pos]['ner']) < 2 or tokens[pos]['ner'] == 'DATE': 
+        if len(tokens[pos]['ner']) < 2 or tokens[pos]['ner'] == 'DATE':
           continue
 
         # skip when this token was combined with a previous token
@@ -127,13 +126,13 @@ class PoliticsEQApi():
         next_token = tokens[pos + 1]
         if next_token['ner'] == tokens[pos]['ner']:
           combined_token = '{0} {1}'.format(tokens[pos]['lemma'], next_token['lemma'])
-          # skip the next token since it was combined 
+          # skip the next token since it was combined
           skip_next = True
         else:
           combined_token = tokens[pos]['lemma']
         if not combined_token in entities.keys():
           entities[combined_token] = {}
-          
+
         entities[combined_token] = {
           'name': combined_token,
           'type': tokens[pos]['ner'],
@@ -141,4 +140,3 @@ class PoliticsEQApi():
         }
     # return the complete entity hash
     return entities
-       

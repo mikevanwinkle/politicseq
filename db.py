@@ -11,7 +11,7 @@ class Db:
 			self.password = os.environ['DB_PASS']
 			self.mysql = mysql
 			self.connection = mysql.connector.connect(host=self.host, database=self.db, user=self.user, password=self.password)
-			self.cursor = self.connection.cursor()
+			self.cursor = self.connection.cursor(buffered=True)
 
 	connection = None
 	def __init__(self):
