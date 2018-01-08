@@ -17,9 +17,54 @@ sentiment_map = {
   'Neutral': 0
 }
 
-feed_classes = {
-  "Breitbart": "the-article",
-  "FiveThirtyEight": "single-post-content"
+FEED_CLASSES = {
+  "Breitbart": "entry-content",
+  "FiveThirtyEight": "entry-content",
+  "foxnews": "article-body",
+  "FoxNews - Opinion": "article-body",
+  "HotAir Main": "article-text",
+  "Huffington Post - Politics": "entry__text",
+  "New York Times - Paul Krugman": "story-body",
+  "NYPost - Opinion": "entry-content",
+  "politico": "story-text",
+  "Politico - Politics": "story-text",
+  "Salon.com": "style__postBody___1Ja8D",
+  "Vox.com": "c-entry-content",
+  "Washington Post - Opinion": "paywall"
+}
+
+FEED_ELEMENTS = {
+  "Breitbart": "div",
+  "FiveThirtyEight": "div",
+  "foxnews": "div",
+  "FoxNews - Opinion": "div",
+  "HotAir Main": "div",
+  "Huffington Post - Politics": "div",
+  "New York Times - Paul Krugman": "a",
+  "NYPost - Opinion": "div",
+  "politico": "div",
+  "Politico - Politics": "story-text",
+  "Salon.com": "div",
+  "Vox.com": "div",
+  "Washington Post - Opinion": "article"
+}
+
+AUTHOR_CLASSES = {
+  "foxnews": "author-byline",
+  "Huffington Post - Politics": "bn-author-name",
+  "New York Times - Paul Krugman": "byline-column-link",
+  "NYPost - Opinion": "author-byline",
+  "politico": "byline",
+  "Salon.com": "style__authorName___1Hdxd"
+}
+
+# the element that wraps the target class in AUTHOR_CLASSES
+AUTHOR_ELEMENTS = {
+  "foxnews": "div",
+  "Huffington Post - Politics": "a",
+  "NYPost - Opinion": "div",
+  "politico": "p",
+  "Salon.com": "span"
 }
 
 class PoliticsEQApi():
@@ -38,39 +83,65 @@ class PoliticsEQApi():
       '\u201d': '"',
       '\\xa0': ' ',
       '\\u2019': "'",
-      '\\u2013': "-"
+      '\\u2013': "-",
+      '\\n': '',
+      '\\t': ''
     }
 
     for char, repl in chars.items():
-      text = text.replace(char, repl)
+      text = text.replace(char, repl).strip()
     printable = set(string.printable)
     text = filter(lambda x: x in printable, text)
     return text
 
+  def parse_author_from_html(self, feed_item, source):
+    r = requests.get(feed_item['link'], verify=requests.certs.where(), headers={'User-agent': 'PoliticsEQ Sentiment Bot'})
+    soup = BeautifulSoup(r.text, 'html.parser')
+    divs = soup.findAll(AUTHOR_ELEMENTS[source['name']], {'class': AUTHOR_CLASSES[source['name']]})
+    #divs = BeautifulSoup(str(divs), 'html.parser')
+    authors = []
+    for div in set(divs):
+      authors.append({"name": self.clean_text(div.get_text())})
+    return authors
 
-  def ingest_from_feed_item(self, feed_item, source=None, update=True):
+  def ingest_from_feed_item(self, feed_item, source=None, update=False):
     from models.author import author
     from models.article import article
     from dateutil import parser
     import codecs
     author = author()
     articles = article()
+    # if this article already exists skip it
+    if not update:
+      article = articles.find_by_link(feed_item['link'])
+      if article.getDict(): return article
     item_auths = []
-    for auth in set(feed_item['authors']):
+    if not 'authors' in feed_item.keys():
+      feed_item['authors'] = self.parse_author_from_html(feed_item, source)
+    for auth in feed_item['authors']:
       if not author.exists(auth['name']):
         author.create({'name': auth['name']})
       item_auths.append(author.find(auth['name']))
+    if len(item_auths) < 1:
+      m.error("Could't find auths for {}".format(feed_item['link']))
+      return None
+
     item_info = {}
+    # pprint.pprint(item_auths)
     # fetch the article
     r = requests.get(feed_item['link'], verify=requests.certs.where(), headers={'User-agent': 'PoliticsEQ Sentiment Bot'})
-    summary = BeautifulSoup(self.clean_text(feed_item['summary']), 'html.parser')
+    summary = ''
+    if 'summary' in feed_item.keys():
+      summary = BeautifulSoup(self.clean_text(feed_item['summary']), 'html.parser')
+      summary = summary.get_text()
     soup = BeautifulSoup(r.text, 'html.parser')
-    text = soup.findAll('article', {'class': feed_classes[source['name']]})
+    text = soup.findAll(FEED_ELEMENTS[source['name']], {'class': FEED_CLASSES[source['name']]})
     text = BeautifulSoup(str(text), 'html.parser')
     body = []
     for p in text.findAll('p'):
       body.append(self.clean_text(p.get_text()))
     body = "".join(body)
+    print "Body: {}".format(body[:100])
     feed_item['title'] = self.clean_text(feed_item['title'])
     article = articles.find_by_title(feed_item['title'])
     if not article.getDict():
@@ -79,7 +150,7 @@ class PoliticsEQApi():
       m.info("Saving {}".format(feed_item['title']))
       article = articles.new({
           'title': feed_item['title'],
-          'summary': summary.get_text(),
+          'summary': summary,
           'source': source['id'],
           'author_id': item_auths[0]['id'],
           'content': body,

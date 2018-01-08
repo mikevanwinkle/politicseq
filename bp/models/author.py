@@ -1,17 +1,17 @@
 import db
 from pprint import pprint
 
-class author(): 
+class author():
 	def __init__(self):
 		self.db = db.Db()
 
 	def exists(self, name):
-		if not self.find(name): 
+		if not self.find(name):
 			return False
 		return True
 
 	def find(self, name=None):
-		author = self.db.query("SELECT * FROM author WHERE name = '{}'".format(name))
+		author = self.db.query('SELECT * FROM author WHERE name = "{}"'.format(name.encode("utf-8")))
 		author = author.fetchone()
 		if author == None: return False
 		return {
@@ -29,7 +29,7 @@ class author():
 				author['last_name'] = ''
 			query = "INSERT INTO author (`name`, `first_name`, `last_name`) VALUES(%s,%s,%s)"
 			cursor = self.db.cursor
-			cursor.execute(query, (author['name'], author['first_name'], author['last_name']))
+			cursor.execute(query, (author['name'].encode("utf-8"), author['first_name'].encode("utf-8"), author['last_name'].encode("utf-8")))
 		except self.db.mysql.connector.Error as err:
 			print(cursor.statement)
 			print("Something went wrong: {}".format(err))

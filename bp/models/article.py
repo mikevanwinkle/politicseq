@@ -43,15 +43,32 @@ class article():
 	def update(self, key, value):
 		self.article[key] = value
 
+	def find_by_link(self, link):
+		try:
+			self.db.query('SELECT * FROM article WHERE link = "{}"'.format(link))
+			article = self.db.cursor.fetchone()
+			self.article = self.toDict(article)
+		except:
+			print(cursor.statement)
+		return self
+
 	def find_by_title(self, title=None):
-		self.db.query("SELECT * FROM article WHERE title = '{}'".format(title))
-		article = self.db.cursor.fetchone()
-		self.article = self.toDict(article)
+		try:
+			self.db.query('SELECT * FROM article WHERE title = "{}"'.format(title))
+			article = self.db.cursor.fetchone()
+			self.article = self.toDict(article)
+			cursor = self.db.cursor
+		except self.db.connector.errors.ProgrammingError as err:
+			print(cursor.statement)
+			print("Something went wrong: {}".format(err))
+		except self.db.connector.Error as err:
+			print(cursor.statement)
+			print("Something went wrong: {}".format(err))
 		return self
 
 	def create(self, article):
 		try:
-			query = "REPLACE INTO article (`title`, `summary`, `source`, `author_id`, `content`, `date`, `link`) VALUES(%s,%s,%s,%s,%s,%s,%s)"
+			query = 'REPLACE INTO article (`title`, `summary`, `source`, `author_id`, `content`, `date`, `link`) VALUES(%s,%s,%s,%s,%s,%s,%s)'
 			cursor = self.db.cursor
 			cursor.execute(query, (article['title'],
 															article['summary'][:255],
@@ -62,6 +79,9 @@ class article():
 															article['link']
 														))
 		except self.db.mysql.connector.Error as err:
+			print(cursor.statement)
+			print("Something went wrong: {}".format(err))
+		except self.db.mysql.connector.errors.ProgrammingError as err:
 			print(cursor.statement)
 			print("Something went wrong: {}".format(err))
 
@@ -85,18 +105,17 @@ class article():
 		self.db.cursor.fetchall
 		return self.db.cursor.lastrowid
 
-	def getAll(self, with_enitities=False):
+	def getAll(self, with_enitities=False, avg=False):
 		self.db.query("SELECT * FROM article WHERE 1=1")
 		articles = self.db.cursor.fetchall()
 		data = []
-		pprint(articles)
 		for article in articles:
 			obj = self.article = self.toDict(article)
 			obj['entities'] = self.entities()
 			data.append(obj)
 		return data
 
-	def entities(self):
+	def entities(self, avg=False):
 		from models.entity import entities
 		entities = entities()
-		return entities.forArticle(self.article.get('id'))
+		return entities.forArticle(self.article.get('id'), avg=avg)

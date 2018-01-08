@@ -19,6 +19,7 @@ celery= Celery('celery.tasks',
 # parse the arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("command", help="Command {info|run|build|stop|port}")
+parser.add_argument('--feed', type=str, help="Restrict operation by feed")
 #parser.add_argument("site", nargs='?', help="The site to operate on")
 parser.add_argument('--force', help="Force the operatoin")
 args = parser.parse_args()
@@ -52,17 +53,29 @@ class Util():
   def entities(self):
     from models.article import article
     from models.entity import entity
-    pass
+    m.info('Articles without entities')
+    article = article()
+    articles = article.getAll(with_enitities=True, avg=True)
+    for article in articles:
+      m.info("{}".format(article['title']))
+      if len(article['entities']) > 0:
+        ens = [entity for entity in article['entities'] if entity['type'] in ['ORGANIZATION', 'PERSON']]
+        for en in ens:
+          print "-> {} = {}".format(en['name'], en['sentiment'])
 
-  def check(self):
+  def check(self, source_name=None):
     sources = pol.sources()
+    if args.feed:
+      sources = [source for source in sources if source['name'] == args.feed]
     entities = {}
     for source in sources:
+      m.info("-" * 50)
       m.info("checking source: {0}".format(source['name']))
+      m.info("-" * 50)
       items = pol.fetch_articles_from_src(source)
       for item in items:
-        m.success(" - {}: {}".format(item['title'].encode('UTF-8'), item['link']))
-        pol.ingest_from_feed_item(item, source=source)
+        line = "  Title: {}:\n  Url:{}\n".format(item['title'].encode('UTF-8'), item['link'])
+        pol.ingest_from_feed_item(item, source=source, update=False)
 
   def createdb(self):
     import db

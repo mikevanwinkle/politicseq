@@ -5,8 +5,11 @@ class entities():
   def __init__(self):
 	  self.db = db.Db()
 
-  def forArticle(self, article_id):
-    self.db.query("SELECT * FROM `entity` WHERE `article_id` = {id};".format(id=article_id))
+  def forArticle(self, article_id, avg=False):
+    q = "SELECT * FROM `entity` WHERE `article_id` = {id};".format(id=article_id)
+    if avg:
+      q = "SELECT name, type, AVG(sentiment) FROM `entity` WHERE `article_id` = {id} GROUP BY name, type;".format(id=article_id)
+    self.db.query(q)
     results = self.db.cursor.fetchall()
     data = []
     for result in results:
