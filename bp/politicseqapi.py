@@ -1,4 +1,4 @@
-import requests, json, feedparser, pprint, os
+import requests, json, feedparser, pprint, os, re
 from bs4 import BeautifulSoup
 from stanfordcorenlp import StanfordCoreNLP
 import messager as m
@@ -8,7 +8,7 @@ BASE_URL = 'https://api.politicseq.com'
 #NLP_URL = 'http://104.131.130.164'
 NLP_URL = str(os.getenv('NLP_URL'))
 NLP_PORT = 9000
-nlp = StanfordCoreNLP(NLP_URL, port=NLP_PORT)
+
 sentiment_map = {
   'Verynegative': -1.0,
   'Negative': -0.5,
@@ -28,7 +28,7 @@ FEED_CLASSES = {
   "NYPost - Opinion": "entry-content",
   "politico": "story-text",
   "Politico - Politics": "story-text",
-  "Salon.com": "style__postBody___1Ja8D",
+  "Salon.com": {"regex": "style__postBody_.*"},
   "Vox.com": "c-entry-content",
   "Washington Post - Opinion": "paywall"
 }
@@ -112,13 +112,19 @@ class PoliticsEQApi():
     author = author()
     articles = article()
     # if this article already exists skip it
-    if not update:
+    if update == False:
       article = articles.find_by_link(feed_item['link'])
       if article.getDict(): return article
+
     item_auths = []
     if not 'authors' in feed_item.keys():
       feed_item['authors'] = self.parse_author_from_html(feed_item, source)
     for auth in feed_item['authors']:
+      # hack to handle salon.com
+      if len(auth['name'].split(',')) > 1 and '<' in auth['name'].split(',')[1]:
+        # if the second substr contains < take the first ... removes links appended to byline
+        # example: <a href="http://www.alternet.org/" class="gaTrackLinkEvent" data-ga-track-json=\'["source"', u' "click"', u' "Alternet"] target="_blank"\'>Alternet</a>
+        auth['name'] = auth['name'].split(',')[0]
       if not author.exists(auth['name']):
         author.create({'name': auth['name']})
       item_auths.append(author.find(auth['name']))
@@ -135,7 +141,10 @@ class PoliticsEQApi():
       summary = BeautifulSoup(self.clean_text(feed_item['summary']), 'html.parser')
       summary = summary.get_text()
     soup = BeautifulSoup(r.text, 'html.parser')
-    text = soup.findAll(FEED_ELEMENTS[source['name']], {'class': FEED_CLASSES[source['name']]})
+    match_class = FEED_CLASSES[source['name']]
+    if isinstance(match_class, dict):
+      match_class = re.compile(match_class['regex'])
+    text = soup.findAll(FEED_ELEMENTS[source['name']], {'class': match_class})
     text = BeautifulSoup(str(text), 'html.parser')
     body = []
     for p in text.findAll('p'):
@@ -160,7 +169,7 @@ class PoliticsEQApi():
       article = article.save()
       m.success("Created {}".format(article.last_id()))
     else:
-      if not update: m.info("Skipping {}".format(article['title']))
+      if not update: m.info("Skipping {}".format(article))
       article.update('content', body)
       article.save()
       m.success("> Updated {}".format(article.last_id()))
@@ -169,11 +178,16 @@ class PoliticsEQApi():
     feed = feedparser.parse(source['url'])
     return feed.entries
 
-  def fetch_article_entities(self, text):
+  def fetch_article_entities(self, text, google=True):
+    if not google:
+      nlp = StanfordCoreNLP(NLP_URL, port=NLP_PORT)
       n = nlp._request('sentiment,ner', text)
       entities = self.extract_entities(n)
-      #entities = [(token['word'], token['ner']) for token in s['tokens'] if len(token['ner']) > 1]
-      return entities
+    else:
+      entities = self.google_entities(text)
+
+    #entities = [(token['word'], token['ner']) for token in s['tokens'] if len(token['ner']) > 1]
+    return entities
 
   def extract_entities(self, text):
     entities = {}
@@ -211,3 +225,27 @@ class PoliticsEQApi():
         }
     # return the complete entity hash
     return entities
+
+  def google_entities(self, text):
+    from google.cloud import language
+    from google.cloud.language import enums
+    from google.cloud.language import types
+    entity_type = ('UNKNOWN', 'PERSON', 'LOCATION', 'ORGANIZATION',
+                   'EVENT', 'WORK_OF_ART', 'CONSUMER_GOOD', 'OTHER')
+    client = language.LanguageServiceClient()
+    document = types.Document(
+      content=text,
+      type=enums.Document.Type.PLAIN_TEXT)
+    # Detects the sentiment of the text
+    result = client.analyze_entity_sentiment(document, "UTF8")
+    data = {}
+    for entity in result.entities:
+      item = {
+        'name': entity.name,
+        'type': entity_type[entity.type],
+        'magnitude': entity.sentiment.magnitude,
+        'salience': entity.salience,
+        'sentiment': entity.sentiment.score
+      }
+      data[entity.name] = item
+    return data

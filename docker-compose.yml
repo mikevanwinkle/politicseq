@@ -10,8 +10,6 @@ services:
     command:  -A tasks --port=5555 --broker=redis://:mikeisawesome@redis:6379/0
     depends_on:
       - redis
-    volumes:
-      - "/etc/hostname:/etc/hostname"
   # worker:
   #   environment:
   #     DB_NAME: 'bp2'

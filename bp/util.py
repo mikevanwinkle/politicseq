@@ -55,11 +55,11 @@ class Util():
     from models.entity import entity
     m.info('Articles without entities')
     article = article()
-    articles = article.getAll(with_enitities=True, avg=True)
+    articles = article.getAll(with_enitities=True, avg=False)
     for article in articles:
       m.info("{}".format(article['title']))
       if len(article['entities']) > 0:
-        ens = [entity for entity in article['entities'] if entity['type'] in ['ORGANIZATION', 'PERSON']]
+        ens = [entity for entity in article['entities']] #if entity['type'] in ['ORGANIZATION', 'PERSON']]
         for en in ens:
           print "-> {} = {}".format(en['name'], en['sentiment'])
 
@@ -75,7 +75,17 @@ class Util():
       items = pol.fetch_articles_from_src(source)
       for item in items:
         line = "  Title: {}:\n  Url:{}\n".format(item['title'].encode('UTF-8'), item['link'])
-        pol.ingest_from_feed_item(item, source=source, update=False)
+        pol.ingest_from_feed_item(item, source=source, update=True)
+
+  def cluster(self):
+    # import modules & set up logging
+    import gensim, logging
+    logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+
+    sentences = [['first', 'sentence'], ['second', 'sentence']]
+    # train word2vec on the two sentences
+    model = gensim.models.Word2Vec(sentences, min_count=1)
+    model = gensim.models.Word2Vec(iter=1)  # an empty model, no training yet
 
   def createdb(self):
     import db
@@ -100,7 +110,7 @@ class Util():
   def add_column(self):
     import db
     db = db.Db()
-    db.add_column('article', '`link` VARCHAR(255) NOT NULL')
+    db.add_column('entity', '`sentiment` DECIMAL(10,8) NULL')
     db.save()
 
   def create_table(self):
@@ -115,6 +125,21 @@ class Util():
               PRIMARY KEY (`id`)\
               ) ENGINE=innodb DEFAULT CHARSET=utf8;")
     db.save()
+
+  def google(self):
+    article_id = 2147
+    from models.entity import entity
+    from models.article import article
+    a = article()
+    entity = entity()
+    entities = pol.fetch_article_entities(a.find_by_id(article_id).get('content'))
+    for en, ens in entities.items():
+      ens['article_id'] = article_id
+      print "{}".format(str(ens))
+    exit()
+
+
+
 
 
 if __name__ == '__main__':

@@ -8,7 +8,7 @@ class entities():
   def forArticle(self, article_id, avg=False):
     q = "SELECT * FROM `entity` WHERE `article_id` = {id};".format(id=article_id)
     if avg:
-      q = "SELECT name, type, AVG(sentiment) FROM `entity` WHERE `article_id` = {id} GROUP BY name, type;".format(id=article_id)
+      q = "SELECT name, type, AVG(sentiment), AVG(salience), AVG(magnitude) FROM `entity` WHERE `article_id` = {id} GROUP BY name, type;".format(id=article_id)
     self.db.query(q)
     results = self.db.cursor.fetchall()
     data = []
@@ -21,7 +21,7 @@ class entities():
 class entity():
   def __init__(self, entity={}):
     self.db = db.Db()
-    self.fields = ['id','name','article_id','type','sentiment']
+    self.fields = ['id','name','article_id','type','sentiment','salience','magnitude']
     self.entity = {}
     return None
 
@@ -45,12 +45,14 @@ class entity():
 
   def create(self, entity):
     try:
-      query = "INSERT INTO entity (`name`, `article_id`, `type`, `sentiment`) VALUES(%s,%s,%s,%s)"
+      query = "INSERT INTO entity (`name`, `article_id`, `type`, `sentiment`, `salience`, `magnitude`) VALUES(%s,%s,%s,%s,%s,%s)"
       cursor = self.db.cursor
       cursor.execute(query, ( entity['name'],
 															entity['article_id'],
 															entity['type'],
-															entity['sentiment']
+															entity['sentiment'],
+                              entity['salience'],
+                              entity['magnitude']
 														))
     except self.db.mysql.connector.Error as err:
 			print(cursor.statement)

@@ -17,3 +17,7 @@ jinja2==2.8
 pyyaml
 cryptography
 google-cloud-language
+gensim
+numpy
+sklearn
+word2vec

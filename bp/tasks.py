@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, json
 sys.path.append(os.getcwd())
 import time
 from celery import Celery
@@ -27,9 +27,9 @@ def article_entities(article_id):
     a = article()
     entity = entity()
     entities = peq.fetch_article_entities(a.find_by_id(article_id).get('content'))
-    print entities
-    for k in entities:
-        entities[k]['article_id'] = article_id
-        entity.new(entities[k])
+    for name, en in entities.items():
+        en['article_id'] = article_id
+        print "{}".format(str(en))
+        entity.new(en)
         entity.save()
     entity.commit()

@@ -115,6 +115,20 @@ class article():
 			data.append(obj)
 		return data
 
+	def getSet(self, where=None, limit=20, offset=0, order="DESC", order_by="id"):
+		q = "SELECT * FROM article WHERE 1=1"
+		if where:
+			q = "{q} AND {where}".format(q=q, where=where)
+		q = "{q} ORDER BY {order_by} {order}".format(q=q, order_by=order_by, order=order)
+		q = "{q} LIMIT {offset}, {limit}".format(q=q, limit=limit, offset=offset)
+		self.db.query(q)
+		items = self.db.cursor.fetchall()
+		data = []
+		for item in items:
+			data.append(self.toDict(item))
+		return data
+
+
 	def entities(self, avg=False):
 		from models.entity import entities
 		entities = entities()
