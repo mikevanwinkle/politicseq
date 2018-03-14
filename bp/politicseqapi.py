@@ -55,7 +55,8 @@ AUTHOR_CLASSES = {
   "New York Times - Paul Krugman": "byline-column-link",
   "NYPost - Opinion": "author-byline",
   "politico": "byline",
-  "Salon.com": "style__authorName___1Hdxd"
+  "Salon.com": "style__authorName___1Hdxd",
+  "Washington Post - Opinion": "pb-byline"
 }
 
 # the element that wraps the target class in AUTHOR_CLASSES
@@ -64,7 +65,8 @@ AUTHOR_ELEMENTS = {
   "Huffington Post - Politics": "a",
   "NYPost - Opinion": "div",
   "politico": "p",
-  "Salon.com": "span"
+  "Salon.com": "span",
+  "Washington Post - Opinion": "span"
 }
 
 class PoliticsEQApi():
@@ -157,13 +159,21 @@ class PoliticsEQApi():
       # saving article
       a = {}
       m.info("Saving {}".format(feed_item['title']))
+      # some feeds don't publish the date so we need to try and get it from the article
+      # this is primarily a hack for the Washington Post
+      if 'published' not in feed_item:
+        bsdate = BeautifulSoup(r.text,'html.parser')
+        date = bsdate.find('span', itemprop="datePublished")
+        feed_item['published'] = date['content']
+      else:
+        feed_item['published'] = parser.parse(feed_item['published']).strftime('%Y-%m-%d %H:%M:%S')
       article = articles.new({
           'title': feed_item['title'],
           'summary': summary,
           'source': source['id'],
           'author_id': item_auths[0]['id'],
           'content': body,
-          'date': parser.parse(feed_item['published']).strftime('%Y-%m-%d %H:%M:%S'), #Fri, 15 Dec 2017 21:21:18 +0000,
+          'date': feed_item['published'],
           'link': feed_item['link']
       })
       article = article.save()

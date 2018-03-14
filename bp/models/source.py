@@ -9,6 +9,7 @@ class source():
 			query = "INSERT INTO source (`name`, `url`, `type`,`publisher`,`publisher_url`) VALUES(%s,%s,%s,%s,%s)"
 			cursor = self.db.cursor
 			cursor.execute(query, (source['name'],source['feed_url'], source['format'], source['publisher'], source['publisher_url']))
+			self.db.save()
 		except self.db.mysql.connector.Error as err:
 			messager.info(cursor.statement)
 			messager.error("Something went wrong: {}".format(err))
@@ -30,8 +31,8 @@ class source():
 			data.append({
 				'id': row[0],
 				'name': row[1],
-				'url': row[2],
-				'type': row[3],
+				'type': row[2],
+				'url': row[3],
 				'publisher': row[4],
 				'publisher_url': row[5]
 			})

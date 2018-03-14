@@ -75,7 +75,7 @@ class Util():
       items = pol.fetch_articles_from_src(source)
       for item in items:
         line = "  Title: {}:\n  Url:{}\n".format(item['title'].encode('UTF-8'), item['link'])
-        pol.ingest_from_feed_item(item, source=source, update=True)
+        pol.ingest_from_feed_item(item, source=source, update=False)
 
   def cluster(self):
     # import modules & set up logging

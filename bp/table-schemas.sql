@@ -20,14 +20,39 @@ CREATE TABLE `article` (
   PRIMARY KEY (`id`),
   KEY `idx_article__source` (`source`),
   CONSTRAINT `fk_article__source` FOREIGN KEY (`source`) REFERENCES `source` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=226 DEFAULT CHARSET=utf8
+) ENGINE=InnoDB AUTO_INCREMENT=226 DEFAULT CHARSET=utf8;
 
 CREATE TABLE `entity` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `article_id` int(11) NOT NULL,
   `type` varchar(255) NOT NULL,
-  `sentiment` double NOT NULL,
+  `sentiment` decimal(12, 12) NOT NULL,
+  `salience` decimal(12, 12) NOT NULL,
+  `magnitude` decimal(12, 12) NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `entity_article_id` (`article_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
+  KEY `entity_article_id` (`article_id`),
+  KEY `entity_sentiment` (`sentiment`),
+  KEY `entity_article_id_type` (`article_id`, `type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `source` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `type` varchar(255) NOT NULL,
+  `url` varchar(255) NOT NULL,
+  `publisher` varchar(255) NOT NULL,
+  `publisher_url` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `source_name` (`name`),
+  KEY `source_publisher` (`publisher`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `author` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `first_name` varchar(255) NOT NULL,
+  `last_name` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `author_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
