@@ -1,3 +1,4 @@
 *.pyc
 bp/lib
 bp/local
+.vscode

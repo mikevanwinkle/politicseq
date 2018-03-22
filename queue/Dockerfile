@@ -1,4 +1,4 @@
-FROM ubuntu:14.04
+FROM ubuntu:16.04
 
 RUN apt-get update -y
 RUN apt-get install -y python-pip python-dev build-essential
@@ -11,7 +11,7 @@ ENV C_FORCE_ROOT true
 COPY . .
 
 # install requirements
-RUN pip install -r requirements.txt
+RUN pip install celery redis==2.10.5 flower docker jinja2==2.8 pyyaml
 
 # run the worker
 #ENTRYPOINT ['celery']

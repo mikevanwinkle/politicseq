@@ -1,3 +1,4 @@
+# encoding: utf-8
 version: '2'
 services:
   monitor:
@@ -33,5 +34,16 @@ services:
      - "6379:6379"
     volumes:
      - 'redis:/var/lib/redis/data'
+  mysql:
+    image: mysql:5.7
+    ports: 
+      - "3306:3306"
+    volumes:
+      - 'data:/var/lib/mysql'
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+    restart: always
 volumes:
   redis:
+  data:
+     
