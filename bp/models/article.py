@@ -49,19 +49,20 @@ class article():
 			article = self.db.cursor.fetchone()
 			self.article = self.toDict(article)
 		except:
-			print(cursor.statement)
+			print(self.db.cursor.statement)
 		return self
 
 	def find_by_title(self, title=None):
+		cursor = self.db.cursor
 		try:
 			self.db.query('SELECT * FROM article WHERE title = "{}"'.format(title))
 			article = self.db.cursor.fetchone()
 			self.article = self.toDict(article)
-			cursor = self.db.cursor
-		except self.db.connector.errors.ProgrammingError as err:
-			print(cursor.statement)
-			print("Something went wrong: {}".format(err))
-		except self.db.connector.Error as err:
+		#except ProgrammingError as err:
+		#	print(cursor.statement)
+		#	print("Something went wrong: {}".format(err))
+		#except Error as err:
+		except Exception as err:
 			print(cursor.statement)
 			print("Something went wrong: {}".format(err))
 		return self

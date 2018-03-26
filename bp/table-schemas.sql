@@ -1,3 +1,6 @@
+CREATE DATABASE bp2;
+GRANT ALL PRIVILEGES ON bp2.* to 'bp2'@'%' identified by 'y0Wuvk!NRpW2';
+USE bp2;
 CREATE TABLE stat (
   `id` BIGINT unsigned NOT NULL AUTO_INCREMENT,
   `stat_key` VARCHAR(50) NOT NULL,
@@ -20,7 +23,7 @@ CREATE TABLE `article` (
   PRIMARY KEY (`id`),
   KEY `idx_article__source` (`source`),
   CONSTRAINT `fk_article__source` FOREIGN KEY (`source`) REFERENCES `source` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=226 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `entity` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
