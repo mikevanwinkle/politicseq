@@ -8,9 +8,11 @@ ENV CELERY_RESULT_BACKEND redis://:mikeisawesome@redis:6379/0
 ENV C_FORCE_ROOT true
 
 # install requirements
-RUN pip install celery redis==2.10.5 flower docker jinja2==2.8 pyyaml
-
+ADD . /opt/bp
 WORKDIR /opt/bp
+# We have to install Cython first since packages in the requirements file depend on it 
+RUN pip install Cython
+RUN pip install -r requirements.txt
 RUN ls -l 
 # run the worker
 #ENTRYPOINT ['celery']

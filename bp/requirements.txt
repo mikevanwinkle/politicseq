@@ -23,3 +23,4 @@ numpy
 sklearn
 word2vec
 mysql-connector-python
+celery
