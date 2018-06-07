@@ -59,9 +59,11 @@ class Util():
     for article in articles:
       m.info("{}".format(article['title']))
       if len(article['entities']) > 0:
-        ens = [entity for entity in article['entities']] #if entity['type'] in ['ORGANIZATION', 'PERSON']]
+        ens = [entity for entity in article['entities']
+                #if entity['type'] in ['ORGANIZATION', 'PERSON']
+                if (entity['sentiment'] >= 0.3 or entity['sentiment'] <= -0.3)]
         for en in ens:
-          print "-> {} = {}".format(en['name'], en['sentiment'])
+          print "-> {} ({}) = {:+.3f}".format(en['name'], en['type'], en['sentiment'])
 
   def check(self, source_name=None):
     sources = pol.sources()

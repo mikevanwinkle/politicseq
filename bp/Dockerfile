@@ -6,6 +6,7 @@ RUN python --version
 ENV CELERY_BROKER_URL redis://:mikeisawesome@redis:6379/0
 ENV CELERY_RESULT_BACKEND redis://:mikeisawesome@redis:6379/0
 ENV C_FORCE_ROOT true
+ENV DB_HOST mysql
 
 ADD . /opt/bp
 WORKDIR /opt/bp
@@ -16,4 +17,3 @@ RUN pip install -r requirements.txt
 # run the worker
 #ENTRYPOINT ['celery']
 #CMD ['-A','tasks', 'worker','--loglevel=info']
-ENTRYPOINT /bin/bash -c celery flower -A tasks --loglevel=info --broker='redis://:mikeisawesome@redis:6379/0'

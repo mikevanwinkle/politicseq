@@ -21,13 +21,15 @@ services:
       DB_NAME: 'bp2'
       DB_USER: 'bp2'
       DB_PASS: 'y0Wuvk!NRpW2'
-      DB_HOST: 'localhost'
+      DB_HOST: 'mysql'
       NLP_URL: 'http://0.0.0.0'
+      GOOGLE_API_KEY: AIzaSyCzJBKLf32DglYjMYmQpHnWNZfhcMjBFNs
+      GOOGLE_APPLICATION_CREDENTIALS: google.creds.json
     build:
       context: ./bp
       dockerfile: Dockerfile
     entrypoint: celery
-    command:  -A tasks worker --loglevel=info --broker=redis://:mikeisawesome@redis:6379/0
+    command:  -A tasks worker --loglevel=info --broker=redis://:mikeisawesome@redis:6379/0 --concurrency 4
     depends_on:
       - redis
       - mysql
