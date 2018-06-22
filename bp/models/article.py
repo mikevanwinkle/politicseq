@@ -100,6 +100,7 @@ class article():
 	def save(self):
 		self.create(self.article)
 		self.db.save()
+		self.article['id'] = self.db.insert_id()
 		return self
 
 	def last_id(self):
@@ -116,7 +117,7 @@ class article():
 			data.append(obj)
 		return data
 
-	def getSet(self, where=None, limit=20, offset=0, order="DESC", order_by="id"):
+	def getSet(self, where=None, limit=20, offset=0, order="DESC", order_by="id", entities=False, avg=False):
 		q = "SELECT * FROM article WHERE 1=1"
 		if where:
 			q = "{q} AND {where}".format(q=q, where=where)
@@ -126,9 +127,11 @@ class article():
 		items = self.db.cursor.fetchall()
 		data = []
 		for item in items:
-			data.append(self.toDict(item))
+			self.article = item = self.toDict(item)
+			if entities:
+				item['entities'] = self.entities()
+			data.append(item)
 		return data
-
 
 	def entities(self, avg=False):
 		from models.entity import entities

@@ -31,3 +31,6 @@ class Db:
 
 	def save(self):
 		self.connection.connection.commit()
+
+	def insert_id(self):
+		self.connection.cursor.lastrowid

@@ -26,7 +26,7 @@ def article_entities(article_id):
     from models.entity import entity
     a = article()
     entity = entity()
-    entities = peq.fetch_article_entities(a.find_by_id(article_id).get('content'))
+    entities = peq.fetch_article_entities(peq.clean_text(a.find_by_id(article_id).get('content')))
     for name, en in entities.items():
         en['article_id'] = article_id
         print "{}".format(str(en))

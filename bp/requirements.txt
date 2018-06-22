@@ -19,8 +19,10 @@ pyyaml
 cryptography
 google-cloud-language
 gensim
-numpy
+numpy==1.11.3
 sklearn
 word2vec
 mysql-connector-python
 celery
+pandas
+watson-developer-cloud>=1.4.0
