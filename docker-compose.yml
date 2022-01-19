@@ -8,7 +8,7 @@ services:
     ports:
      - "5555:5555"
     entrypoint: flower
-    command:  -A tasks --port=5555 --broker=redis://:mikeisawesome@redis:6379/0
+    command:  -A tasks --port=5555 --broker=redis://:$password@redis:6379/0
     depends_on:
       - redis
       - mysql
@@ -29,7 +29,7 @@ services:
       context: ./bp
       dockerfile: Dockerfile
     entrypoint: celery
-    command:  -A tasks worker --loglevel=info --broker=redis://:mikeisawesome@redis:6379/0 --concurrency 4
+    command:  -A tasks worker --loglevel=info --broker=redis://:$password@redis:6379/0 --concurrency 4
     depends_on:
       - redis
       - mysql
